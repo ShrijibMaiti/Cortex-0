@@ -65,6 +65,20 @@ int strcmp(const char* s1, const char* s2) {
     return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
+/* --- HELPER: READ CPU VENDOR STRING (CPUID) --- */
+void print_cpu_vendor() {
+    uint32_t eax = 0, ebx, ecx, edx;
+    asm volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(eax));
+    char vendor[13];
+    vendor[0] = ebx; vendor[1] = ebx>>8; vendor[2] = ebx>>16; vendor[3] = ebx>>24;
+    vendor[4] = edx; vendor[5] = edx>>8; vendor[6] = edx>>16; vendor[7] = edx>>24;
+    vendor[8] = ecx; vendor[9] = ecx>>8; vendor[10] = ecx>>16; vendor[11] = ecx>>24;
+    vendor[12] = '\0';
+    terminal_writestring("Silicon Identity: ");
+    terminal_writestring(vendor);
+    terminal_writestring("\n");
+}
+
 /* --- THE BRAIN (INPUT BUFFER) --- */
 char input_buffer[256];
 int buffer_pos = 0;
@@ -77,15 +91,20 @@ void execute_command() {
         terminal_writestring("Gravity: 9.81 m/s^2 | Velocity: 0 m/s\n");
     } 
     else if (strcmp(input_buffer, "CPU") == 0 || strcmp(input_buffer, "cpu") == 0) {
-        terminal_writestring("[AMD-HARDWARE] Reading CPU Time-Stamp Counter...\n");
+        terminal_writestring("[HARDWARE] Reading CPU Time-Stamp Counter...\n");
         uint64_t cycles = rdtsc();
         terminal_writestring("Cycles: "); print_dec((uint32_t)cycles); terminal_writestring("\n");
         terminal_writestring("Status: 32-bit Protected Mode | Ring 0 Active\n");
+    }
+    else if (strcmp(input_buffer, "VENDOR") == 0 || strcmp(input_buffer, "vendor") == 0) {
+        terminal_writestring("[HARDWARE SCAN] Interrogating Processor...\n");
+        print_cpu_vendor();
     }
     else if (strcmp(input_buffer, "HELP") == 0 || strcmp(input_buffer, "help") == 0) {
         terminal_writestring("Available Commands:\n");
         terminal_writestring(" - physics : Run physics simulation\n");
         terminal_writestring(" - cpu     : Show raw hardware stats (RDTSC)\n");
+        terminal_writestring(" - vendor  : Interrogate silicon manufacturer\n");
         terminal_writestring(" - help    : Show this menu\n");
     }
     else if (buffer_pos > 0) { // Only print unknown if they actually typed something
@@ -136,8 +155,8 @@ void kmain(void) {
     idt_install();
     asm volatile("sti");
 
-    terminal_writestring("MyOS Kernel V2.1 [AMD EDITION]\n");
-    terminal_writestring("Input Buffer: ONLINE\n");
+    terminal_writestring("Cortex-0 AI-Native Kernel [AMD EDITION]\n");
+    terminal_writestring("Core Systems: ONLINE\n");
     terminal_writestring("Type 'help' for commands.\n");
     terminal_writestring("----------------------------\n> ");
 
